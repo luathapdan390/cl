@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clone Clockify Simple</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f2f6f8; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .timer-box { display: flex; gap: 10px; align-items: center; background: #fff; padding: 15px; border-bottom: 1px solid #ddd; }
+        input { padding: 10px; flex-grow: 1; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-start { background-color: #03a9f4; color: white; }
+        .btn-stop { background-color: #e91e63; color: white; display: none; }
+        .time-display { font-size: 20px; font-weight: bold; color: #333; min-width: 100px; text-align: center; }
+        
+        .history-list { margin-top: 20px; }
+        .history-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+        .project-tag { color: #03a9f4; font-weight: bold; }
+        .date-header { background: #eee; padding: 5px 10px; font-size: 12px; color: #666; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>⏱️ My Time Tracker</h2>
+    
+    <div class="timer-box">
+        <input type="text" id="projectInput" placeholder="Bạn đang làm gì? (VD: Making videos)">
+        <div class="time-display" id="timerDisplay">00:00:00</div>
+        <button id="startBtn" class="btn-start" onclick="startTimer()">START</button>
+        <button id="stopBtn" class="btn-stop" onclick="stopTimer()">STOP</button>
+    </div>
+
+    <div class="history-list" id="historyList">
+        </div>
+</div>
+
+<script>
+    let startTime;
+    let timerInterval;
+    let isRunning = false;
+
+    // Load dữ liệu cũ từ bộ nhớ
+    let timeEntries = JSON.parse(localStorage.getItem('timeEntries')) || [];
+    renderHistory();
+
+    function startTimer() {
+        if (!document.getElementById('projectInput').value) {
+            alert("Hãy nhập tên công việc trước!");
+            return;
+        }
+        startTime = Date.now();
+        isRunning = true;
+        
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display = 'block';
+        
+        // Cập nhật đồng hồ mỗi giây
+        timerInterval = setInterval(updateTimerDisplay, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        isRunning = false;
+        
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        const projectName = document.getElementById('projectInput').value;
+        
+        // Tạo object lưu trữ
+        const entry = {
+            id: Date.now(),
+            project: projectName,
+            start: startTime,
+            end: endTime,
+            duration: duration,
+            date: new Date().toLocaleDateString('vi-VN')
+        };
+
+        // Lưu vào mảng và LocalStorage
+        timeEntries.unshift(entry); // Thêm vào đầu danh sách
+        localStorage.setItem('timeEntries', JSON.stringify(timeEntries));
+
+        // Reset giao diện
+        document.getElementById('startBtn').style.display = 'block';
+        document.getElementById('stopBtn').style.display = 'none';
+        document.getElementById('timerDisplay').innerText = "00:00:00";
+        document.getElementById('projectInput').value = "";
+        
+        renderHistory();
+    }
+
+    function updateTimerDisplay() {
+        const now = Date.now();
+        const diff = now - startTime;
+        document.getElementById('timerDisplay').innerText = formatTime(diff);
+    }
+
+    function formatTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+
+    function pad(num) {
+        return num.toString().padStart(2, '0');
+    }
+
+    function renderHistory() {
+        const container = document.getElementById('historyList');
+        container.innerHTML = '';
+        
+        // Gom nhóm theo ngày (Logic đơn giản)
+        timeEntries.forEach(entry => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `
+                <div>
+                    <span class="project-tag">${entry.project}</span>
+                    <br>
+                    <small style="color:#999">${entry.date}</small>
+                </div>
+                <div>
+                    <strong>${formatTime(entry.duration)}</strong>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+</script>
+
+</body>
+</html>
